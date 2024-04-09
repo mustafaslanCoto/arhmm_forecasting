@@ -2,9 +2,10 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 import statsmodels.api as sm
-from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_absolute_percentage_error
+from sklearn.metrics import mean_absolute_error
+
 class HMM_Regression:
-    def __init__(self, n_components, y, X, lag_list, add_constant = True, method = "posterior", n_iter = 100, tol=1e-6,coefficients=None, stds = None, init_state = None, trans_matrix= None, eval_set = None):
+    def __init__(self, n_components, y, X, lag_list, ,add_constant = True, method = "posterior", n_iter = 100, tol=1e-6,coefficients=None, stds = None, init_state = None, trans_matrix= None, eval_set = None):
         self.N = n_components
         self.T = len(y)
         self.y = np.array(y)
@@ -13,12 +14,13 @@ class HMM_Regression:
             X = sm.add_constant(X)
         self.col_names = X.columns.tolist()
         self.X = np.array(X)
+
         if init_state is None:
             self.pi = np.full(self.N , 1/self.N )
         else:
             self.pi = init_state
         if trans_matrix is None:
-            self.A  = np.full((self.N,self.N), 1/self.N)
+            self.A = np.full((self.N,self.N), 1/self.N)
         else:
             self.A = trans_matrix
             
@@ -102,8 +104,6 @@ class HMM_Regression:
             mu = sum(self.coeffs[i]*self.X[0])
             pdf_0 = norm.pdf(self.y[0], loc=mu, scale=self.stds[i])
             self.P_ter += self.pi[i]*pdf_0*self.backward[i, 0]
-        
-        
         
         poster = self.backward*self.forward # (at*bt from t to T for all states) # the probality of the observation for whole utterance
         self.total_prob = poster.sum(axis =0)
@@ -273,7 +273,6 @@ class HMM_Regression:
         exog = np.array(exog)
         
         forecasts = []
-        # forecasts2 = []
         f_forward = np.zeros((self.N, self.T))
         state_preds = np.zeros((self.N, H))
         for t in range(H): # recursion step
@@ -282,7 +281,6 @@ class HMM_Regression:
                 lags = [y_list[-l] for l in self.lag_list]
                 if self.cons == True:
                     lags.insert(0, 1)
-                lags.insert(0, 1)
                 inp = lags+exo_inp
                 final_inp=np.array(inp)
                 mu = sum(self.coeffs[s]*final_inp)
@@ -307,7 +305,7 @@ class HMM_Regression:
         self.X = np.array(X_train)
         if self.cons == True:
             self.X = sm.add_constant(self.X)
-
+            
         self.y = np.array(y_train)
         self.T = len(y_train)
         # Forward Algorithm-scale
@@ -337,3 +335,5 @@ class HMM_Regression:
         # likelihods.append(obs_prob)
         return obs_prob
             
+            
+    
