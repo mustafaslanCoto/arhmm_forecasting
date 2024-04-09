@@ -5,7 +5,7 @@ import statsmodels.api as sm
 from sklearn.metrics import mean_absolute_error
 
 class HMM_Regression:
-    def __init__(self, n_components, y, X, lag_list, ,add_constant = True, method = "posterior", n_iter = 100, tol=1e-6,coefficients=None, stds = None, init_state = None, trans_matrix= None, eval_set = None):
+    def __init__(self, n_components, y, X, lag_list, add_constant = True, method = "posterior", n_iter = 100, tol=1e-6,coefficients=None, stds = None, init_state = None, trans_matrix= None, eval_set = None):
         self.N = n_components
         self.T = len(y)
         self.y = np.array(y)
