@@ -1,19 +1,24 @@
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
+import statsmodels.api as sm
+from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_absolute_percentage_error
 class HMM_Regression:
-    def __init__(self, n_components, y, X, lag_list, method = "posterior", n_iter = 100, tol=1e-6,coefficients=None, stds = None, init_state = None, trans_matrix= None, eval_set = None):
+    def __init__(self, n_components, y, X, lag_list, add_constant = True, method = "posterior", n_iter = 100, tol=1e-6,coefficients=None, stds = None, init_state = None, trans_matrix= None, eval_set = None):
         self.N = n_components
         self.T = len(y)
         self.y = np.array(y)
-        self.X = np.array(X)
+        self.cons = add_constant
+        if self.cons == True:
+            X = sm.add_constant(X)
         self.col_names = X.columns.tolist()
+        self.X = np.array(X)
         if init_state is None:
-            self.pi = array = np.full(self.N , 1/self.N )
+            self.pi = np.full(self.N , 1/self.N )
         else:
             self.pi = init_state
         if trans_matrix is None:
-            self.A = array = np.full((self.N,self.N), 1/self.N)
+            self.A  = np.full((self.N,self.N), 1/self.N)
         else:
             self.A = trans_matrix
             
@@ -174,7 +179,6 @@ class HMM_Regression:
         # trainsition prob calculations for each time step:
         fina_eq_all = np.zeros((self.N**2, self.T-1))
         for t in range(self.T-1):
-            trans = []
             idx = 0
             for i in range(self.N):
         
@@ -276,6 +280,8 @@ class HMM_Regression:
             exo_inp = exog[t].tolist()
             for s in range(self.N):
                 lags = [y_list[-l] for l in self.lag_list]
+                if self.cons == True:
+                    lags.insert(0, 1)
                 lags.insert(0, 1)
                 inp = lags+exo_inp
                 final_inp=np.array(inp)
@@ -299,6 +305,9 @@ class HMM_Regression:
     def fit(self, X_train, y_train):
         
         self.X = np.array(X_train)
+        if self.cons == True:
+            self.X = sm.add_constant(self.X)
+
         self.y = np.array(y_train)
         self.T = len(y_train)
         # Forward Algorithm-scale
