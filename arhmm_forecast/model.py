@@ -5,15 +5,26 @@ import statsmodels.api as sm
 from sklearn.metrics import mean_absolute_error
 
 class HMM_Regression:
-    def __init__(self, n_components, y, X, lag_list, add_constant = True, method = "posterior", n_iter = 100, tol=1e-6,coefficients=None, stds = None, init_state = None, trans_matrix= None, eval_set = None):
+    def __init__(self, n_components, df, target_col, lag_list, method = "posterior", add_constant = True, difference = None, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6,coefficients=None, stds = None, init_state = None, trans_matrix= None, eval_set = None):
         self.N = n_components
-        self.T = len(y)
-        self.y = np.array(y)
+  
+        self.cat_var = cat_var
+        self.drop_categ = drop_categ
+        self.target_col = target_col
+        self.diff = difference
         self.cons = add_constant
+        
+        self.lag_list = lag_list
+        self.df = self.data_prep(df)
+        self.X = self.df.drop(columns = self.target_col)
+        self.y = self.df[self.target_col]
+
         if self.cons == True:
-            X = sm.add_constant(X)
-        self.col_names = X.columns.tolist()
-        self.X = np.array(X)
+            self.X = sm.add_constant(self.X)
+        self.col_names = self.X.columns.tolist()
+        self.X = np.array(self.X)
+        self.y = np.array(self.y)
+        self.T = len(self.y)
 
         if init_state is None:
             self.pi = np.full(self.N , 1/self.N )
@@ -39,8 +50,29 @@ class HMM_Regression:
         self.iter = n_iter
         self.tol = tol
         self.eval_set = eval_set
-        self.lag_list = lag_list
         self.optimize()
+
+    def data_prep(self, df):
+        dfc = df.copy()
+        if self.cat_var is not None:
+            for col, cat in self.cat_var.items():
+                dfc[col] = dfc[col].astype('category')
+                dfc[col] = dfc[col].cat.set_categories(cat)
+            dfc = pd.get_dummies(dfc)
+            
+            for i in self.drop_categ:
+                dfc.drop(list(dfc.filter(regex=i)), axis=1, inplace=True)
+                
+        if self.target_col in dfc.columns:
+            if self.diff is not None:
+                self.last_train = df[self.target_col].tolist()[-1]
+                for i in range(1, self.diff+1):
+                    dfc[self.target_col] = dfc[self.target_col].diff(1)
+                    
+            for i in self.lag_list:
+                    dfc["lag"+"_"+str(i)] = dfc[self.target_col].shift(i)       
+        dfc = dfc.dropna()
+        return dfc
         
         
     def compute_forward(self):
@@ -179,6 +211,7 @@ class HMM_Regression:
         # trainsition prob calculations for each time step:
         fina_eq_all = np.zeros((self.N**2, self.T-1))
         for t in range(self.T-1):
+            trans = []
             idx = 0
             for i in range(self.N):
         
@@ -246,10 +279,10 @@ class HMM_Regression:
             self.predicted = (self.fitted*self.posterior).sum(axis = 0)
             if self.eval_set is not None:
                 pred = self.forecast(42, self.eval_set[0])
-                frs_list = list(pred)
-                frs_list.insert(0, self.eval_set[2])
-                preds = np.cumsum(frs_list)[1:]
-                mae = mean_absolute_error(self.eval_set[1], np.array(preds))
+                # frs_list = list(pred)
+                # frs_list.insert(0, self.eval_set[2])
+                # preds = np.cumsum(frs_list)[1:]
+                mae = mean_absolute_error(self.eval_set[1], np.array(pred))
                 # print(mae)
             
             if i>0:
@@ -270,18 +303,20 @@ class HMM_Regression:
 
     def forecast(self, H, exog):
         y_list = self.y.tolist()
-        exog = np.array(exog)
+        if self.cons == True:
+            exog = sm.add_constant(exog)
+        exog = np.array(self.data_prep(exog))
         
         forecasts = []
+        # forecasts2 = []
         f_forward = np.zeros((self.N, self.T))
         state_preds = np.zeros((self.N, H))
         for t in range(H): # recursion step
             exo_inp = exog[t].tolist()
             for s in range(self.N):
                 lags = [y_list[-l] for l in self.lag_list]
-                if self.cons == True:
-                    lags.insert(0, 1)
-                inp = lags+exo_inp
+
+                inp = exo_inp+lags
                 final_inp=np.array(inp)
                 mu = sum(self.coeffs[s]*final_inp)
                 state_preds[s, t] = mu
@@ -294,20 +329,27 @@ class HMM_Regression:
                         
             c = 1/f_forward[:, t].sum()
             f_forward[:, t] = f_forward[:, t]*c
-
+            # max_state_idx = np.argmax(f_forward[:, t])
+            # max_state_idx = np.argmin(np.abs(state_preds[:, t]))
+            # pred = state_preds[:, t][max_state_idx]
+            # forecasts2.append(pred)
             pred_w = sum(f_forward[:, t]*state_preds[:, t])
             forecasts.append(pred_w)
             y_list.append(pred_w)
+
+        if self.diff is not None:
+            forecasts.insert(0, self.last_train)
+            forecasts = np.cumsum(forecasts)[1:]
         return np.array(forecasts)
 
-    def fit(self, X_train, y_train):
-        
-        self.X = np.array(X_train)
+    def fit(self, df_train):
+        df = self.data_prep(df_train)
+        self.X = np.array(df.drop(columns = self.target_col))
         if self.cons == True:
             self.X = sm.add_constant(self.X)
             
-        self.y = np.array(y_train)
-        self.T = len(y_train)
+        self.y = np.array(df[self.target_col])
+        self.T = len(self.y)
         # Forward Algorithm-scale
         self.forward = np.zeros((self.N, self.T))
         self.scales = []
@@ -334,6 +376,3 @@ class HMM_Regression:
         self.LL = obs_prob
         # likelihods.append(obs_prob)
         return obs_prob
-            
-            
-    
