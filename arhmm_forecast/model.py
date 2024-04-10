@@ -302,6 +302,7 @@ class HMM_Regression:
                 print(f"iteration: {i+1}, LL: {ll}, eps: {None}")
             self.LLs.append(ll)
             # print("Transition matrix:", self.A)
+        self.opt_forward = self.forward
         
 
     def forecast(self, H, exog):
