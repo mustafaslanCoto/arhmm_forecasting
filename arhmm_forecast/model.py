@@ -26,6 +26,9 @@ class HMM_Regression:
         self.y = np.array(self.y)
         self.T = len(self.y)
 
+        self.Xs = np.array(self.X)
+        self.ys = np.array(self.y)
+
         if init_state is None:
             self.pi = np.full(self.N , 1/self.N )
         else:
@@ -181,8 +184,8 @@ class HMM_Regression:
             wi = self.posterior[i]
             W = np.diag(wi)
 
-            X_weight = np.dot(W, self.X)
-            y_weight= np.dot(W, self.y)
+            X_weight = np.dot(W, self.Xs)
+            y_weight= np.dot(W, self.ys)
             coeff_state = np.linalg.lstsq(X_weight, y_weight, rcond=None)[0]
             
             resid = y_weight-(coeff_state*X_weight).sum(axis = 1)
