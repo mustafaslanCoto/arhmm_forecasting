@@ -305,19 +305,26 @@ class HMM_Regression:
         self.opt_forward = self.forward
         
 
-    def forecast(self, H, exog):
+    def forecast(self, H, exog=None):
         y_list = self.y.tolist()
-        if self.cons == True:
-            exog = sm.add_constant(exog)
-        exog = np.array(self.data_prep(exog))
+        if exog is not None:
+            if self.cons == True:
+                exog = sm.add_constant(exog)
+            exog = np.array(self.data_prep(exog))
         
         forecasts = []
         # forecasts2 = []
         f_forward = np.zeros((self.N, H))
         state_preds = np.zeros((self.N, H))
         for t in range(H): # recursion step
-            exo_inp = exog[t].tolist()
-            for s in range(self.N):
+            if exog is not None:
+                exo_inp = exog[t].tolist()
+            else:
+                if self.cons == True:
+                    exo_inp = [1]
+                else:
+                    exo_inp = []
+            for s in range(self.N): 
                 lags = [y_list[-l] for l in self.lag_list]
 
                 inp = exo_inp+lags
