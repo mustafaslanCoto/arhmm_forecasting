@@ -313,7 +313,7 @@ class HMM_Regression:
         
         forecasts = []
         # forecasts2 = []
-        f_forward = np.zeros((self.N, self.T))
+        f_forward = np.zeros((self.N, H))
         state_preds = np.zeros((self.N, H))
         for t in range(H): # recursion step
             exo_inp = exog[t].tolist()
