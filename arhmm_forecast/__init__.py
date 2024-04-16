@@ -1,1 +1,1 @@
-from arhmm_forecast.model import HMM_Regression
+from arhmm_forecast.model import HMM_Regression, HMM_VAR
