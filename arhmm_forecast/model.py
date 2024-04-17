@@ -6,7 +6,7 @@ from sklearn.metrics import mean_absolute_error
 
 class HMM_Regression:
     def __init__(self, n_components, df, target_col, lag_list, method = "posterior",  
-                 startprob_prior=1e+04, transmat_prior=1e+05, add_constant = True, 
+                 startprob_prior=1e+03, transmat_prior=1e+05, add_constant = True, 
                  difference = None, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6,coefficients=None, 
                  stds = None, init_state = None, trans_matrix= None, eval_set = None):
         self.N = n_components
@@ -32,14 +32,6 @@ class HMM_Regression:
         self.Xs = np.array(self.X)
         self.ys = np.array(self.y)
 
-        # if init_state is None:
-        #     self.pi = np.full(self.N , 1/self.N )
-        # else:
-        #     self.pi = init_state
-        # if trans_matrix is None:
-        #     self.A = np.full((self.N,self.N), 1/self.N)
-        # else:
-        #     self.A = trans_matrix
 
         if init_state is None:
             # self.pi = np.full(self.N , 1/self.N )
@@ -409,7 +401,7 @@ class HMM_Regression:
 from scipy.stats import multivariate_normal
 class HMM_VAR:
     def __init__(self, n_components, df, target_col, lag_dict, diff_dict, method = "posterior", covariance_type = "full",  
-                 startprob_prior=1e+04, transmat_prior=1e+05, add_constant = True, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6, 
+                 startprob_prior=1e+03, transmat_prior=1e+05, add_constant = True, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6, 
                  coefficients=None, init_state = None, trans_matrix= None, eval_set = None):
         
         self.N = n_components
