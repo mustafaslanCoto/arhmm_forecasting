@@ -5,7 +5,10 @@ import statsmodels.api as sm
 from sklearn.metrics import mean_absolute_error
 
 class HMM_Regression:
-    def __init__(self, n_components, df, target_col, lag_list, method = "posterior", add_constant = True, difference = None, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6,coefficients=None, stds = None, init_state = None, trans_matrix= None, eval_set = None):
+    def __init__(self, n_components, df, target_col, lag_list, method = "posterior",  
+                 startprob_prior=1e+04, transmat_prior=1e+05, add_constant = True, 
+                 difference = None, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6,coefficients=None, 
+                 stds = None, init_state = None, trans_matrix= None, eval_set = None):
         self.N = n_components
   
         self.cat_var = cat_var
@@ -29,12 +32,27 @@ class HMM_Regression:
         self.Xs = np.array(self.X)
         self.ys = np.array(self.y)
 
+        # if init_state is None:
+        #     self.pi = np.full(self.N , 1/self.N )
+        # else:
+        #     self.pi = init_state
+        # if trans_matrix is None:
+        #     self.A = np.full((self.N,self.N), 1/self.N)
+        # else:
+        #     self.A = trans_matrix
+
         if init_state is None:
-            self.pi = np.full(self.N , 1/self.N )
+            # self.pi = np.full(self.N , 1/self.N )
+            self.sp = startprob_prior
+            self.alpha_p = np.repeat(self.sp, self.N)
+            self.pi = np.random.dirichlet(self.alpha_p)
         else:
             self.pi = init_state
         if trans_matrix is None:
-            self.A = np.full((self.N,self.N), 1/self.N)
+            self.tm = transmat_prior
+            self.alpha_t = np.repeat(self.tm, self.N)
+            # self.A = np.full((self.N,self.N), 1/self.N)
+            self.A = np.random.dirichlet(self.alpha_t, size=self.N)
         else:
             self.A = trans_matrix
             
@@ -390,19 +408,20 @@ class HMM_Regression:
 
 from scipy.stats import multivariate_normal
 class HMM_VAR:
-    def __init__(self, n_components, df, target_col, lag_dict, diff_dict, method = "posterior", add_constant = True, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6, coefficients=None, stds = None, 
-                 init_state = None, trans_matrix= None, eval_set = None):
+    def __init__(self, n_components, df, target_col, lag_dict, diff_dict, method = "posterior", covariance_type = "full",  
+                 startprob_prior=1e+04, transmat_prior=1e+05, add_constant = True, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6, 
+                 coefficients=None, init_state = None, trans_matrix= None, eval_set = None):
         
         self.N = n_components
         self.cat_var = cat_var
         self.drop_categ = drop_categ
         self.target_col = target_col
         self.diffs = diff_dict
-   
+        # self.diff2 = difference_2
         self.cons = add_constant
         
         self.lags_dict = lag_dict
-       
+        # self.lag_list2 = lag_list2
         self.df = self.data_prep(df)
         self.X = self.df.drop(columns = self.target_col)
         self.y = self.df[self.target_col]
@@ -416,13 +435,20 @@ class HMM_VAR:
 
         self.Xs = np.array(self.X)
         self.ys = np.array(self.y)
+        
 
         if init_state is None:
-            self.pi = np.full(self.N , 1/self.N )
+            # self.pi = np.full(self.N , 1/self.N )
+            self.sp = startprob_prior
+            self.alpha_p = np.repeat(self.sp, self.N)
+            self.pi = np.random.dirichlet(self.alpha_p)
         else:
             self.pi = init_state
         if trans_matrix is None:
-            self.A = np.full((self.N,self.N), 1/self.N)
+            self.tm = transmat_prior
+            self.alpha_t = np.repeat(self.tm, self.N)
+            # self.A = np.full((self.N,self.N), 1/self.N)
+            self.A = np.random.dirichlet(self.alpha_t, size=self.N)
         else:
             self.A = trans_matrix
             
@@ -431,10 +457,11 @@ class HMM_VAR:
         else:
             self.coeffs = coefficients
         
-        if stds is None:
+        self.cvr = covariance_type
+        if self.cvr == "full":
             self.covs = [np.cov(self.y, rowvar=False) for i in range(self.N)]
-        else:
-            self.covs = stds
+        elif self.cvr == "diag":
+            self.covs = [np.diag(np.cov(self.y, rowvar=False)) for i in range(self.N)]
 
         # self.coeffs = np.full((self.N, self.X.shape[1]), 1e-06)
         self.method = method
@@ -696,7 +723,11 @@ class HMM_VAR:
         self.coeffs = coeffs
         # print(self.coeffs)
         # self.covs = covs
-        self.covs = [covs for i in range(self.N)]
+        if self.cvr == "full":
+            self.covs = [covs for i in range(self.N)]
+        elif self.cvr == "diag":
+            self.covs = [np.diag(covs) for i in range(self.N)]
+            
 
     def optimize(self):
         self.LLs = []
@@ -711,7 +742,9 @@ class HMM_VAR:
             # self.predicted2 = (self.fitted2*self.posterior).sum(axis = 0)
             if self.eval_set is not None:
                 pred = self.forecast(42, self.eval_set[0])
-
+                # frs_list = list(pred)
+                # frs_list.insert(0, self.eval_set[2])
+                # preds = np.cumsum(frs_list)[1:]
                 mae = mean_absolute_error(self.eval_set[1], np.array(pred))
                 # print(mae)
             
@@ -720,7 +753,7 @@ class HMM_VAR:
                 if self.eval_set is not None:
                     print(f"iteration: {i+1}, LL: {ll}, eps: {eps}. Stardard deviations are {self.covs} and mae: {mae}")
                 else:
-                    print(f"iteration: {i+1}, LL: {ll}, eps: {eps}.")
+                    print(f"iteration: {i+1}, LL: {ll}, eps: {eps}")
                 # self.diff.append(eps)
                 if np.abs(eps) < self.tol:
                     print(f"Converged after {i + 1} iterations.")
