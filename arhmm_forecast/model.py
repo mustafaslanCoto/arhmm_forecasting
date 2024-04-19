@@ -8,7 +8,7 @@ class HMM_Regression:
     def __init__(self, n_components, df, target_col, lag_list, method = "posterior",  
                  startprob_prior=1e+03, transmat_prior=1e+05, add_constant = True, 
                  difference = None, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6,coefficients=None, 
-                 stds = None, init_state = None, trans_matrix= None, eval_set = None):
+                 stds = None, init_state = None, trans_matrix= None, random_state = None):
         self.N = n_components
   
         self.cat_var = cat_var
@@ -33,18 +33,20 @@ class HMM_Regression:
         self.ys = np.array(self.y)
 
 
+        self.rng = np.random.default_rng(random_state)
         if init_state is None:
             # self.pi = np.full(self.N , 1/self.N )
             self.sp = startprob_prior
+            
             self.alpha_p = np.repeat(self.sp, self.N)
-            self.pi = np.random.dirichlet(self.alpha_p)
+            self.pi = self.rng.dirichlet(self.alpha_p)
         else:
             self.pi = init_state
         if trans_matrix is None:
             self.tm = transmat_prior
             self.alpha_t = np.repeat(self.tm, self.N)
             # self.A = np.full((self.N,self.N), 1/self.N)
-            self.A = np.random.dirichlet(self.alpha_t, size=self.N)
+            self.A = self.rng.dirichlet(self.alpha_t, size=self.N)
         else:
             self.A = trans_matrix
             
@@ -290,13 +292,6 @@ class HMM_Regression:
                 self.compute_viterbi()
             self.EM()
             self.predicted = (self.fitted*self.posterior).sum(axis = 0)
-            if self.eval_set is not None:
-                pred = self.forecast(42, self.eval_set[0])
-                # frs_list = list(pred)
-                # frs_list.insert(0, self.eval_set[2])
-                # preds = np.cumsum(frs_list)[1:]
-                mae = mean_absolute_error(self.eval_set[1], np.array(pred))
-                # print(mae)
             
             if i>0:
                 eps = ll-self.LLs[-1]
@@ -402,7 +397,7 @@ from scipy.stats import multivariate_normal
 class HMM_VAR:
     def __init__(self, n_components, df, target_col, lag_dict, diff_dict, method = "posterior", covariance_type = "full",  
                  startprob_prior=1e+03, transmat_prior=1e+05, add_constant = True, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6, 
-                 coefficients=None, init_state = None, trans_matrix= None, eval_set = None):
+                 coefficients=None, init_state = None, trans_matrix= None, random_state = None):
         
         self.N = n_components
         self.cat_var = cat_var
@@ -429,18 +424,19 @@ class HMM_VAR:
         self.ys = np.array(self.y)
         
 
+        self.rng = np.random.default_rng(random_state)
         if init_state is None:
             # self.pi = np.full(self.N , 1/self.N )
             self.sp = startprob_prior
             self.alpha_p = np.repeat(self.sp, self.N)
-            self.pi = np.random.dirichlet(self.alpha_p)
+            self.pi = self.rng.dirichlet(self.alpha_p)
         else:
             self.pi = init_state
         if trans_matrix is None:
             self.tm = transmat_prior
             self.alpha_t = np.repeat(self.tm, self.N)
             # self.A = np.full((self.N,self.N), 1/self.N)
-            self.A = np.random.dirichlet(self.alpha_t, size=self.N)
+            self.A = self.rng.dirichlet(self.alpha_t, size=self.N)
         else:
             self.A = trans_matrix
             
@@ -732,13 +728,6 @@ class HMM_VAR:
             self.EM()
             # self.predicted1 = (self.fitted1*self.posterior).sum(axis = 0)
             # self.predicted2 = (self.fitted2*self.posterior).sum(axis = 0)
-            if self.eval_set is not None:
-                pred = self.forecast(42, self.eval_set[0])
-                # frs_list = list(pred)
-                # frs_list.insert(0, self.eval_set[2])
-                # preds = np.cumsum(frs_list)[1:]
-                mae = mean_absolute_error(self.eval_set[1], np.array(pred))
-                # print(mae)
             
             if i>0:
                 eps = ll-self.LLs[-1]
