@@ -294,10 +294,7 @@ class HMM_Regression:
             
             if i>0:
                 eps = ll-self.LLs[-1]
-                if self.eval_set is not None:
-                    print(f"iteration: {i+1}, LL: {ll}, eps: {eps}. Stardard deviations are {self.stds} and mae: {mae}")
-                else:
-                    print(f"iteration: {i+1}, LL: {ll}, eps: {eps}. Stardard deviations are {self.stds}")
+                print(f"iteration: {i+1}, LL: {ll}, eps: {eps}. Stardard deviations are {self.stds}")
                 # self.diff.append(eps)
                 if np.abs(eps) < self.tol:
                     print(f"Converged after {i + 1} iterations.")
@@ -729,10 +726,7 @@ class HMM_VAR:
             
             if i>0:
                 eps = ll-self.LLs[-1]
-                if self.eval_set is not None:
-                    print(f"iteration: {i+1}, LL: {ll}, eps: {eps}. Stardard deviations are {self.covs} and mae: {mae}")
-                else:
-                    print(f"iteration: {i+1}, LL: {ll}, eps: {eps}")
+                print(f"iteration: {i+1}, LL: {ll}, eps: {eps}")
                 # self.diff.append(eps)
                 if np.abs(eps) < self.tol:
                     print(f"Converged after {i + 1} iterations.")
