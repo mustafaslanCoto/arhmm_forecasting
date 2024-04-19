@@ -64,7 +64,6 @@ class HMM_Regression:
         self.method = method
         self.iter = n_iter
         self.tol = tol
-        self.eval_set = eval_set
         self.optimize()
 
     def data_prep(self, df):
@@ -455,7 +454,6 @@ class HMM_VAR:
         self.method = method
         self.iter = n_iter
         self.tol = tol
-        self.eval_set = eval_set
         self.optimize()
 
         
