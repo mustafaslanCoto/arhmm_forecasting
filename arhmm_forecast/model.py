@@ -18,6 +18,7 @@ class HMM_Regression:
         self.cons = add_constant
         
         self.lag_list = lag_list
+        self.data = df
         self.df = self.data_prep(df)
         self.X = self.df.drop(columns = self.target_col)
         self.y = self.df[self.target_col]
@@ -405,6 +406,7 @@ class HMM_VAR:
         
         self.lags_dict = lag_dict
         # self.lag_list2 = lag_list2
+        self.data = df
         self.df = self.data_prep(df)
         self.X = self.df.drop(columns = self.target_col)
         self.y = self.df[self.target_col]
