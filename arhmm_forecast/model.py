@@ -8,7 +8,7 @@ class HMM_Regression:
     def __init__(self, n_components, df, target_col, lag_list, method = "posterior",  
                  startprob_prior=1e+03, transmat_prior=1e+05, add_constant = True, 
                  difference = None, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6,coefficients=None, 
-                 stds = None, init_state = None, trans_matrix= None, random_state = None):
+                 stds = None, init_state = None, trans_matrix= None, random_state = None, verbose = False):
         self.N = n_components
   
         self.cat_var = cat_var
@@ -65,6 +65,7 @@ class HMM_Regression:
         self.method = method
         self.iter = n_iter
         self.tol = tol
+        self.verb = verbose
         self.optimize()
 
     def data_prep(self, df):
@@ -295,13 +296,15 @@ class HMM_Regression:
             
             if i>0:
                 eps = ll-self.LLs[-1]
-                print(f"iteration: {i+1}, LL: {ll}, eps: {eps}. Stardard deviations are {self.stds}")
+                if self.verb == True:
+                    print(f"iteration: {i+1}, LL: {ll}, eps: {eps}. Stardard deviations are {self.stds}")
                 # self.diff.append(eps)
                 if np.abs(eps) < self.tol:
                     print(f"Converged after {i + 1} iterations.")
                     break
             else:
-                print(f"iteration: {i+1}, LL: {ll}, eps: {None}")
+                if self.verb == True:
+                    print(f"iteration: {i+1}, LL: {ll}, eps: {None}")
             self.LLs.append(ll)
             # print("Transition matrix:", self.A)
         self.opt_forward = self.forward
@@ -394,7 +397,7 @@ from scipy.stats import multivariate_normal
 class HMM_VAR:
     def __init__(self, n_components, df, target_col, lag_dict, diff_dict, method = "posterior", covariance_type = "full",  
                  startprob_prior=1e+03, transmat_prior=1e+05, add_constant = True, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6, 
-                 coefficients=None, init_state = None, trans_matrix= None, random_state = None):
+                 coefficients=None, init_state = None, trans_matrix= None, random_state = None, verbose = False):
         
         self.N = n_components
         self.cat_var = cat_var
@@ -453,6 +456,7 @@ class HMM_VAR:
         self.method = method
         self.iter = n_iter
         self.tol = tol
+        self.verb = verbose
         self.optimize()
 
         
@@ -728,13 +732,15 @@ class HMM_VAR:
             
             if i>0:
                 eps = ll-self.LLs[-1]
-                print(f"iteration: {i+1}, LL: {ll}, eps: {eps}")
+                if self.verb == True:
+                    print(f"iteration: {i+1}, LL: {ll}, eps: {eps}")
                 # self.diff.append(eps)
                 if np.abs(eps) < self.tol:
                     print(f"Converged after {i + 1} iterations.")
                     break
             else:
-                print(f"iteration: {i+1}, LL: {ll}, eps: {None}")
+                if self.verb == True:
+                    print(f"iteration: {i+1}, LL: {ll}, eps: {None}")
             self.LLs.append(ll)
             # print("Transition matrix:", self.A)
         self.opt_forward = self.forward
