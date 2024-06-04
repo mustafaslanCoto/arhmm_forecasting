@@ -299,7 +299,7 @@ class HMM_Regression:
                 if self.verb == True:
                     print(f"iteration: {i+1}, LL: {ll}, eps: {eps}. Stardard deviations are {self.stds}")
                 # self.diff.append(eps)
-                if (np.abs(eps) < self.tol) & (i>5):
+                if (np.abs(eps) < self.tol) & (i>10):
                     print(f"Converged after {i + 1} iterations.")
                     break
             else:
@@ -735,7 +735,7 @@ class HMM_VAR:
                 if self.verb == True:
                     print(f"iteration: {i+1}, LL: {ll}, eps: {eps}")
                 # self.diff.append(eps)
-                if (np.abs(eps) < self.tol) & (i>5):
+                if (np.abs(eps) < self.tol) & (i>10):
                     print(f"Converged after {i + 1} iterations.")
                     break
             else:
