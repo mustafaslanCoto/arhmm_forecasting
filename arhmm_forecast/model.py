@@ -81,10 +81,12 @@ class HMM_Regression:
                 
         if self.target_col in dfc.columns:
             if self.diff is not None:
-                self.last_train = df[self.target_col].tolist()[-1]
-                for i in range(1, self.diff+1):
-                    dfc[self.target_col] = dfc[self.target_col].diff(1)
-                    
+                if self.diff > 1:
+                    self.last_train = dfc[self.target_col].tolist()[-self.diff:]
+                else:
+                    self.last_train = dfc[self.target_col].tolist()[-1]
+                dfc[self.target_col] = dfc[self.target_col].diff(self.diff)
+ 
             for i in self.lag_list:
                     dfc["lag"+"_"+str(i)] = dfc[self.target_col].shift(i)       
         dfc = dfc.dropna()
@@ -317,7 +319,7 @@ class HMM_Regression:
                 exog = sm.add_constant(exog)
             exog = np.array(self.data_prep(exog))
         
-        forecasts = []
+        forecasts_ = []
         # forecasts2 = []
         f_forward = np.zeros((self.N, H))
         state_preds = np.zeros((self.N, H))
@@ -350,13 +352,24 @@ class HMM_Regression:
             # pred = state_preds[:, t][max_state_idx]
             # forecasts2.append(pred)
             pred_w = sum(f_forward[:, t]*state_preds[:, t])
-            forecasts.append(pred_w)
+            forecasts_.append(pred_w)
             y_list.append(pred_w)
 
         if self.diff is not None:
-            forecasts.insert(0, self.last_train)
-            forecasts = np.cumsum(forecasts)[1:]
-        return np.array(forecasts)
+            if self.diff>1:
+                predictions_ = self.last_train+forecasts_
+                for i in range(len(predictions_)):
+                    if i<len(predictions_)-self.diff:
+                        predictions_[i+self.diff] = predictions_[i]+predictions_[i+self.diff]
+                        forecasts = predictions_[-H:]
+            else:    
+                forecasts_.insert(0, self.last_train)
+                forecasts = np.cumsum(forecasts_)[-H:]
+        else:
+            forecasts = np.array(forecasts_)
+
+            
+        return forecasts
 
     def fit(self, df_train):
         df = self.data_prep(df_train)
