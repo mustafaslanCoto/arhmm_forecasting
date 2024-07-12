@@ -7,18 +7,19 @@ from sklearn.metrics import mean_absolute_error
 class HMM_Regression:
     def __init__(self, n_components, df, target_col, lag_list, method = "posterior",  
                  startprob_prior=1e+03, transmat_prior=1e+05, add_constant = True, 
-                 difference = None, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6,coefficients=None, 
+                 difference = None, cat_variables = None, n_iter = 100, tol=1e-6,coefficients=None, 
                  stds = None, init_state = None, trans_matrix= None, random_state = None, verbose = False):
         self.N = n_components
-  
-        self.cat_var = cat_var
-        self.drop_categ = drop_categ
+
         self.target_col = target_col
         self.diff = difference
         self.cons = add_constant
-        
+        self.cat_variables = cat_variables
         self.lag_list = lag_list
         self.data = df
+        if self.cat_variables is not None:
+            self.cat_var = {c: sorted(df[c].drop_duplicates().tolist(), key=lambda x: x[0]) for c in self.cat_variables}
+            self.drop_categ= [sorted(df[i].drop_duplicates().tolist(), key=lambda x: x[0])[0] for i in self.cat_variables]
         self.df = self.data_prep(df)
         self.X = self.df.drop(columns = self.target_col)
         self.y = self.df[self.target_col]
@@ -70,7 +71,7 @@ class HMM_Regression:
 
     def data_prep(self, df):
         dfc = df.copy()
-        if self.cat_var is not None:
+        if self.cat_variables is not None:
             for col, cat in self.cat_var.items():
                 dfc[col] = dfc[col].astype('category')
                 dfc[col] = dfc[col].cat.set_categories(cat)
@@ -409,12 +410,10 @@ class HMM_Regression:
 from scipy.stats import multivariate_normal
 class HMM_VAR:
     def __init__(self, n_components, df, target_col, lag_dict, diff_dict, method = "posterior", covariance_type = "full",  
-                 startprob_prior=1e+03, transmat_prior=1e+05, add_constant = True, cat_var = None, drop_categ= None, n_iter = 100, tol=1e-6, 
+                 startprob_prior=1e+03, transmat_prior=1e+05, add_constant = True, cat_variables = None, n_iter = 100, tol=1e-6, 
                  coefficients=None, init_state = None, trans_matrix= None, random_state = None, verbose = False):
         
         self.N = n_components
-        self.cat_var = cat_var
-        self.drop_categ = drop_categ
         self.target_col = target_col
         self.diffs = diff_dict
         # self.diff2 = difference_2
@@ -423,6 +422,12 @@ class HMM_VAR:
         self.lags_dict = lag_dict
         # self.lag_list2 = lag_list2
         self.data = df
+        self.cat_variables = cat_variables
+
+        if self.cat_variables is not None:
+            self.cat_var = {c: sorted(df[c].drop_duplicates().tolist(), key=lambda x: x[0]) for c in self.cat_variables}
+            self.drop_categ= [sorted(df[i].drop_duplicates().tolist(), key=lambda x: x[0])[0] for i in self.cat_variables]
+
         self.df = self.data_prep(df)
         self.X = self.df.drop(columns = self.target_col)
         self.y = self.df[self.target_col]
@@ -476,7 +481,7 @@ class HMM_VAR:
 
     def data_prep(self, df):
         dfc = df.copy()
-        if self.cat_var is not None:
+        if self.cat_variables is not None:
             for col, cat in self.cat_var.items():
                 dfc[col] = dfc[col].astype('category')
                 dfc[col] = dfc[col].cat.set_categories(cat)
