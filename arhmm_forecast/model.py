@@ -100,11 +100,6 @@ class HMM_Regression:
             for i in self.lag_list:
                     dfc["lag"+"_"+str(i)] = dfc[self.target_col].shift(i)
 
-        if (self.trend ==True) & (self.trend_type == "feature"):
-
-            if (self.target_col in dfc.columns):
-                dfc["trend"] = self.lr_model.predict(np.array(range(self.len)).reshape(-1, 1)) 
-
         dfc = dfc.dropna()
         return dfc
         
