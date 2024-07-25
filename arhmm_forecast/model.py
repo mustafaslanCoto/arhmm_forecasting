@@ -3,10 +3,11 @@ import pandas as pd
 from scipy.stats import norm
 import statsmodels.api as sm
 from sklearn.metrics import mean_absolute_error
+from sklearn.linear_model import LinearRegression
 
 class HMM_Regression:
     def __init__(self, n_components, df, target_col, lag_list, method = "posterior",  
-                 startprob_prior=1e+03, transmat_prior=1e+05, add_constant = True, 
+                 startprob_prior=1e+03, transmat_prior=1e+05, add_trend = False, add_constant = True, 
                  difference = None, cat_variables = None, n_iter = 100, tol=1e-6,coefficients=None, 
                  stds = None, init_state = None, trans_matrix= None, random_state = None, verbose = False):
         self.N = n_components
@@ -17,6 +18,7 @@ class HMM_Regression:
         self.cat_variables = cat_variables
         self.lag_list = lag_list
         self.data = df
+        self.trend =add_trend
         if self.cat_variables is not None:
             self.cat_var = {c: sorted(df[c].drop_duplicates().tolist(), key=lambda x: x[0]) for c in self.cat_variables}
             self.drop_categ= [sorted(df[i].drop_duplicates().tolist(), key=lambda x: x[0])[0] for i in self.cat_variables]
@@ -81,6 +83,13 @@ class HMM_Regression:
                 dfc.drop(list(dfc.filter(regex=i)), axis=1, inplace=True)
                 
         if self.target_col in dfc.columns:
+
+            if (self.trend ==True):
+                self.len = len(dfc)
+                self.lr_model = LinearRegression().fit(np.array(range(self.len)).reshape(-1, 1), dfc[self.target_col])
+
+                dfc[self.target_col] = dfc[self.target_col]-self.lr_model.predict(np.array(range(self.len)).reshape(-1, 1))
+
             if self.diff is not None:
                 if self.diff > 1:
                     self.last_train = dfc[self.target_col].tolist()[-self.diff:]
@@ -89,7 +98,13 @@ class HMM_Regression:
                 dfc[self.target_col] = dfc[self.target_col].diff(self.diff)
  
             for i in self.lag_list:
-                    dfc["lag"+"_"+str(i)] = dfc[self.target_col].shift(i)       
+                    dfc["lag"+"_"+str(i)] = dfc[self.target_col].shift(i)
+
+        if (self.trend ==True) & (self.trend_type == "feature"):
+
+            if (self.target_col in dfc.columns):
+                dfc["trend"] = self.lr_model.predict(np.array(range(self.len)).reshape(-1, 1)) 
+
         dfc = dfc.dropna()
         return dfc
         
@@ -321,6 +336,8 @@ class HMM_Regression:
             exog = np.array(self.data_prep(exog))
         
         forecasts_ = []
+        if self.trend ==True:
+            trend_pred = self.lr_model.predict(np.array(range(self.len, self.len+H)).reshape(-1, 1))
         # forecasts2 = []
         f_forward = np.zeros((self.N, H))
         state_preds = np.zeros((self.N, H))
@@ -369,7 +386,10 @@ class HMM_Regression:
         else:
             forecasts = np.array(forecasts_)
 
-            
+
+        if (self.trend ==True):
+            forecasts = trend_pred+forecasts    
+   
         return forecasts
 
     def fit(self, df_train):
