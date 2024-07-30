@@ -327,7 +327,10 @@ class HMM_Regression:
         y_list = self.y.tolist()
         if exog is not None:
             if self.cons == True:
-                exog = sm.add_constant(exog)
+                if exog.shape[0] == 1:
+                    exog.insert(0, 'const', 1)
+                else:
+                    exog = sm.add_constant(exog)
             exog = np.array(self.data_prep(exog))
         
         forecasts_ = []
@@ -349,6 +352,7 @@ class HMM_Regression:
 
                 inp = exo_inp+lags
                 final_inp=np.array(inp)
+
                 mu = sum(self.coeffs[s]*final_inp)
                 state_preds[s, t] = mu
                 pdf_s = norm.pdf(mu, loc=mu, scale=self.stds[s])
@@ -784,7 +788,10 @@ class HMM_VAR:
 
         if exog is not None:
             if self.cons == True:
-                exog = sm.add_constant(exog)
+                if exog.shape[0] == 1:
+                    exog.insert(0, 'const', 1)
+                else:
+                    exog = sm.add_constant(exog)
             exog = np.array(self.data_prep(exog))
 
         forecasts = {f"{self.target_col[i]}": [] for i in range(self.y.shape[1])}
