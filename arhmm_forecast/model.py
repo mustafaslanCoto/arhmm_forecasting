@@ -4,6 +4,7 @@ from scipy.stats import norm
 import statsmodels.api as sm
 from sklearn.metrics import mean_absolute_error
 from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import TimeSeriesSplit
 
 class HMM_Regression:
     def __init__(self, n_components, df, target_col, lag_list, method = "posterior",  
@@ -425,6 +426,36 @@ class HMM_Regression:
         self.LL = obs_prob
         # likelihods.append(obs_prob)
         return obs_prob
+    def cv(self, df, cv_split, test_size, metrics):
+        tscv = TimeSeriesSplit(n_splits=cv_split, test_size=test_size)
+        
+        self.metrics_dict = {m.__name__: [] for m in metrics}
+        self.cv_forecats_df= pd.DataFrame()
+
+        for train_index, test_index in tscv.split(df):
+            train, test = df.iloc[train_index], df.iloc[test_index]
+            x_test, y_test = test.drop(columns = self.target_col), np.array(test[self.target_col])
+            
+            self.fit(train)
+            forecasts = self.forecast(test_size, x_test=x_test)
+
+            forecat_df = test[self.target_col].to_frame()
+            forecat_df["forecasts"] = forecasts
+            self.cv_forecats_df = pd.concat([self.cv_forecats_df, forecat_df], axis=0)
+
+            for m in metrics:
+                if m.__name__== 'mean_squared_error':
+                    eval = m(y_test, forecasts, squared=False)
+                elif (m.__name__== 'MeanAbsoluteScaledError')|(m.__name__== 'MedianAbsoluteScaledError'):
+                    eval = m(y_test, forecasts, np.array(train[self.target_col]))
+                else:
+                    eval = m(y_test, forecasts)
+                self.metrics_dict[m.__name__].append(eval)
+
+
+        overal_perform = [[m.__name__, np.mean(self.metrics_dict[m.__name__])] for m in metrics]  
+        
+        return pd.DataFrame(overal_perform).rename(columns = {0:"eval_metric", 1:"score"})
 
 from scipy.stats import multivariate_normal
 class HMM_VAR:
