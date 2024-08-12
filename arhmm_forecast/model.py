@@ -437,7 +437,7 @@ class HMM_Regression:
             x_test, y_test = test.drop(columns = self.target_col), np.array(test[self.target_col])
             
             self.fit(train)
-            forecasts = self.forecast(test_size, x_test=x_test)
+            forecasts = self.forecast(test_size, exog=x_test)
 
             forecat_df = test[self.target_col].to_frame()
             forecat_df["forecasts"] = forecasts
